@@ -2,6 +2,8 @@ package com.hmdp.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.annotation.LimitDimension;
+import com.hmdp.annotation.SlideWindowLimit;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.VoucherOrder;
 import com.hmdp.mapper.VoucherOrderMapper;
@@ -26,6 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import static com.hmdp.annotation.LimitDimension.IP;
+import static com.hmdp.annotation.LimitDimension.USER;
 
 /**
  * <p>
@@ -188,6 +194,12 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     }
 
     @Override
+    @SlideWindowLimit(
+            dimension = IP,
+            windowSize = 1000,
+            maxCount = 5,
+            timeUnit = TimeUnit.MILLISECONDS
+    )
     public Result seckillVoucher(Long voucherId) {
         Long userId = UserHolder.getUser().getId();
         long orderId = redisIdWorker.nextId("order");
