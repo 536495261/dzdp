@@ -9,6 +9,7 @@ import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
 import com.hmdp.utils.CacheClient;
 import com.hmdp.utils.SystemConstants;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoResult;
 import org.springframework.data.geo.GeoResults;
@@ -32,6 +33,7 @@ import static com.hmdp.utils.RedisConstants.*;
  * @author 虎哥
  * @since 2021-12-22
  */
+@Slf4j
 @Service
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
 
@@ -63,6 +65,9 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         return Result.ok(shop);
     }
 
+    @Resource
+    private com.hmdp.mq.CacheDeleteProducer cacheDeleteProducer;
+
     @Override
     @Transactional
     public Result update(Shop shop) {
@@ -72,8 +77,20 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         }
         // 1.更新数据库
         updateById(shop);
-        // 2.删除缓存
-        stringRedisTemplate.delete(CACHE_SHOP_KEY + id);
+
+        // 2.删除缓存（先尝试直接删除）
+        String cacheKey = CACHE_SHOP_KEY + id;
+        try {
+            Boolean deleted = stringRedisTemplate.delete(cacheKey);
+            if (Boolean.TRUE.equals(deleted)) {
+                log.info("缓存删除成功: {}", cacheKey);
+            }
+        } catch (Exception e) {
+            // 3.删除失败，发送消息到队列进行补偿重试
+            log.error("缓存删除失败，发送补偿消息: {}", cacheKey, e);
+            cacheDeleteProducer.sendDeleteMessage(cacheKey);
+        }
+
         return Result.ok();
     }
 
