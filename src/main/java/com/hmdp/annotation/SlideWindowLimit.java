@@ -11,7 +11,7 @@ public @interface SlideWindowLimit {
     /**
      * 限流key前缀（默认：limit:slide:）
      */
-    String prefix() default "limit:slide:";
+    String prefix() default "limit:slide";
     /**
      * 限流维度（全局/IP/用户）
      */
