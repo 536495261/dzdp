@@ -27,3 +27,19 @@ logging:
     com.hmdp: debug
   pattern:
     dateformat: mm:ss.SSS
+
+# LangChain4j OpenAI配置
+langchain4j:
+  openai:
+    api-key: sk-59780e0e6e4c47eb96a9c372bef197d9
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model-name: deepseek-v3
+
+# 线程池配置
+thread-pool:
+  cache-rebuild:
+    core-size: 5        # 核心线程数
+    max-size: 10        # 最大线程数
+    queue-capacity: 100 # 队列容量
+  seckill-order:
+    core-size: 3        # 核心线程数（消费者数量）
