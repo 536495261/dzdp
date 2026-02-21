@@ -1,6 +1,7 @@
 package com.hmdp.mq;
 
 import cn.hutool.json.JSONUtil;
+import com.hmdp.utils.CacheClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.connection.stream.ReadOffset;
@@ -27,6 +28,9 @@ public class CacheDeleteConsumer {
 
     @Resource
     private CacheDeleteProducer cacheDeleteProducer;
+
+    @Resource
+    private CacheClient cacheClient;
 
     private static final String STREAM_KEY = CacheDeleteProducer.STREAM_KEY;
     private static final String GROUP_NAME = "cache-delete-group";
@@ -122,14 +126,17 @@ public class CacheDeleteConsumer {
         log.info("收到缓存删除消息: key={}, retryCount={}", message.getCacheKey(), message.getRetryCount());
 
         try {
-            // 尝试删除缓存
+            // 尝试删除Redis缓存
             Boolean deleted = stringRedisTemplate.delete(message.getCacheKey());
-
             if (Boolean.TRUE.equals(deleted)) {
-                log.info("缓存删除成功: {}", message.getCacheKey());
+                log.info("Redis缓存删除成功: {}", message.getCacheKey());
             } else {
-                log.info("缓存不存在或已删除: {}", message.getCacheKey());
+                log.info("Redis缓存不存在或已删除: {}", message.getCacheKey());
             }
+
+            // 删除本地缓存
+            cacheClient.delete(message.getCacheKey());
+            log.info("本地缓存删除成功: {}", message.getCacheKey());
 
             // 确认消息
             stringRedisTemplate.opsForStream().acknowledge(STREAM_KEY, GROUP_NAME, record.getId());

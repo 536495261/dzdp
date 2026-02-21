@@ -78,13 +78,17 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         // 1.更新数据库
         updateById(shop);
 
-        // 2.删除缓存（先尝试直接删除）
+        // 2.删除缓存（Redis + 本地缓存）
         String cacheKey = CACHE_SHOP_KEY + id;
         try {
+            // 2.1 删除Redis缓存
             Boolean deleted = stringRedisTemplate.delete(cacheKey);
             if (Boolean.TRUE.equals(deleted)) {
-                log.info("缓存删除成功: {}", cacheKey);
+                log.info("Redis缓存删除成功: {}", cacheKey);
             }
+            // 2.2 删除本地缓存
+            cacheClient.delete(cacheKey);
+            log.info("本地缓存删除成功: {}", cacheKey);
         } catch (Exception e) {
             // 3.删除失败，发送消息到队列进行补偿重试
             log.error("缓存删除失败，发送补偿消息: {}", cacheKey, e);
